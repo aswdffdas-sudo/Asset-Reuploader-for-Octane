@@ -24,6 +24,12 @@ type UserInfo struct {
 }
 
 func authenticateHandler(c *Client, cookie string) (func() (UserInfo, error), error) {
+	cookie = strings.TrimSpace(cookie)
+	if cookie == "" {
+		return func() (UserInfo, error) {
+			return UserInfo{}, AuthenticateErrors.ErrAuthorizationDenied
+		}, nil
+	}
 	domain := strings.TrimSpace(config.Get("domain"))
 	if domain == "" {
 		domain = "octane.wtf"
@@ -47,6 +53,9 @@ func authenticateHandler(c *Client, cookie string) (func() (UserInfo, error), er
 				if err := json.NewDecoder(resp.Body).Decode(&userInfo); err == nil && userInfo.ID != 0 {
 					return userInfo, nil
 				}
+			}
+			if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
+				return UserInfo{}, AuthenticateErrors.ErrAuthorizationDenied
 			}
 		}
 

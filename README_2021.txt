@@ -26,6 +26,9 @@ This edition is fully integrated with Octane (https://octane.wtf):
 --------------------------------------------------------------------------------
 SETUP:
 --------------------------------------------------------------------------------
+Fastest Setup: Double-click "Octane Asset Reuploader Setup.exe" to install the
+Studio plugin, paste your cookies, edit config.ini, and start the backend!
+
 1. cookie.txt -> Your OCTANE session cookie (from octane.wtf).
 2. roblox_cookie.txt -> Your OFFICIAL ROBLOX .ROBLOSECURITY (to download private assets).
 3. config.ini ->

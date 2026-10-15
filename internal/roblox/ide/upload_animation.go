@@ -37,25 +37,33 @@ func uploadToRevival(c *roblox.Client, name, description string, data *bytes.Buf
 		uploadURL = fmt.Sprintf("https://%s/develop/upload?groupId=%d", strings.TrimPrefix(domain, "www."), groupID)
 	}
 
-	// Step 1: Probe to obtain fresh CSRF Token and CSRF Cookie
+	// Step 1: Probe to obtain fresh CSRF Token and all CSRF Cookies (_octb, rbxcsrf4)
 	probeReq, err := http.NewRequest("POST", uploadURL, bytes.NewReader([]byte("{}")))
 	if err != nil {
 		return 0, err
 	}
 	probeReq.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
 	probeReq.Header.Set("Content-Type", "application/json")
+	if c.Cookie != "" {
+		probeReq.Header.Set("Cookie", ".ROBLOSECURITY="+c.Cookie)
+	}
 
 	probeResp, err := c.DoRequest(probeReq)
 	if err != nil {
 		return 0, fmt.Errorf("revival CSRF probe failed: %w", err)
 	}
 	csrfToken := probeResp.Header.Get("X-CSRF-Token")
-	csrfCookie := probeResp.Header.Get("Set-Cookie")
-	probeResp.Body.Close()
-
 	if csrfToken == "" {
 		csrfToken = probeResp.Header.Get("x-csrf-token")
 	}
+	var cookieParts []string
+	for _, sc := range probeResp.Header.Values("Set-Cookie") {
+		kv := strings.TrimSpace(strings.Split(sc, ";")[0])
+		if kv != "" {
+			cookieParts = append(cookieParts, kv)
+		}
+	}
+	probeResp.Body.Close()
 
 	// Step 2: Build Multipart Form Data matching Octane develop.js:
 	// name, assetType (24 for animation), file, groupId
@@ -95,18 +103,11 @@ func uploadToRevival(c *roblox.Client, name, description string, data *bytes.Buf
 		upReq.Header.Set("X-CSRF-Token", csrfToken)
 	}
 
-	cookieHeader := ""
-	if csrfCookie != "" {
-		cookieHeader = strings.Split(csrfCookie, ";")[0]
-	}
 	if c.Cookie != "" {
-		if cookieHeader != "" {
-			cookieHeader += "; "
-		}
-		cookieHeader += ".ROBLOSECURITY=" + c.Cookie
+		cookieParts = append(cookieParts, ".ROBLOSECURITY="+c.Cookie)
 	}
-	if cookieHeader != "" {
-		upReq.Header.Set("Cookie", cookieHeader)
+	if len(cookieParts) > 0 {
+		upReq.Header.Set("Cookie", strings.Join(cookieParts, "; "))
 	}
 
 	resp, err := c.DoRequest(upReq)

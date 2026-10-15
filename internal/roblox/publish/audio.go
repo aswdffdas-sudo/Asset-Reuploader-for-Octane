@@ -97,13 +97,16 @@ func uploadAudioToRevival(c *roblox.Client, name string, data *bytes.Buffer, gro
 		uploadURL = fmt.Sprintf("https://%s/develop/upload?groupId=%d", strings.TrimPrefix(domain, "www."), groupID)
 	}
 
-	// Step 1: Probe for CSRF
+	// Step 1: Probe for CSRF Token and all CSRF Cookies (_octb, rbxcsrf4)
 	probeReq, err := http.NewRequest("POST", uploadURL, bytes.NewReader([]byte("{}")))
 	if err != nil {
 		return nil, err
 	}
 	probeReq.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
 	probeReq.Header.Set("Content-Type", "application/json")
+	if c.Cookie != "" {
+		probeReq.Header.Set("Cookie", ".ROBLOSECURITY="+c.Cookie)
+	}
 
 	probeResp, err := c.DoRequest(probeReq)
 	if err != nil {
@@ -113,7 +116,13 @@ func uploadAudioToRevival(c *roblox.Client, name string, data *bytes.Buffer, gro
 	if csrfToken == "" {
 		csrfToken = probeResp.Header.Get("x-csrf-token")
 	}
-	csrfCookie := probeResp.Header.Get("Set-Cookie")
+	var cookieParts []string
+	for _, sc := range probeResp.Header.Values("Set-Cookie") {
+		kv := strings.TrimSpace(strings.Split(sc, ";")[0])
+		if kv != "" {
+			cookieParts = append(cookieParts, kv)
+		}
+	}
 	probeResp.Body.Close()
 
 	// Step 2: Build multipart form data for Audio (assetType = 3)
@@ -150,18 +159,11 @@ func uploadAudioToRevival(c *roblox.Client, name string, data *bytes.Buffer, gro
 		upReq.Header.Set("X-CSRF-Token", csrfToken)
 	}
 
-	cookieHeader := ""
-	if csrfCookie != "" {
-		cookieHeader = strings.Split(csrfCookie, ";")[0]
-	}
 	if c.Cookie != "" {
-		if cookieHeader != "" {
-			cookieHeader += "; "
-		}
-		cookieHeader += ".ROBLOSECURITY=" + c.Cookie
+		cookieParts = append(cookieParts, ".ROBLOSECURITY="+c.Cookie)
 	}
-	if cookieHeader != "" {
-		upReq.Header.Set("Cookie", cookieHeader)
+	if len(cookieParts) > 0 {
+		upReq.Header.Set("Cookie", strings.Join(cookieParts, "; "))
 	}
 
 	resp, err := c.DoRequest(upReq)

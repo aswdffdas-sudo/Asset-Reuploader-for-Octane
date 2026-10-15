@@ -33,6 +33,9 @@ Based on the original [Asset-Reuploader](https://github.com/kartFr/Asset-Reuploa
 
 ## 🚀 Setup & Usage
 
+> **Native Setup & Launcher App (`Octane Asset Reuploader Setup.exe`)**
+> Double-click **`Octane Asset Reuploader Setup.exe`** to install the `AssetReuploader2021.rbxm` Studio plugin with 1 click, configure `cookie.txt`, `roblox_cookie.txt`, and `config.ini` directly in the UI, and launch `assetreuploader.exe`.
+
 ### 1. Configuration
 1. Open `cookie.txt` and paste your **Octane session cookie** (from `octane.wtf`).
 2. Open `roblox_cookie.txt` and paste your **official Roblox `.ROBLOSECURITY`** cookie (required for downloading private/protected sounds and animations).
