@@ -20,8 +20,9 @@ var (
 		"api_key":            "",
 		"api_key_file":       "api-key.txt",
 		"domain":             "octane.wtf",
-		"user_id":            "24811",
+		"user_id":            "", // each user's own Octane ID, asked for on first run
 		"group_id":           "",
+		"bind_address":       "",
 	}
 )
 

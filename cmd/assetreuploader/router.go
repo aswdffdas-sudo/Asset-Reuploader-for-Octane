@@ -4,10 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/kartFr/Asset-Reuploader/internal/app/assets"
+	"github.com/kartFr/Asset-Reuploader/internal/app/config"
 	"github.com/kartFr/Asset-Reuploader/internal/app/request"
 	"github.com/kartFr/Asset-Reuploader/internal/app/response"
 	"github.com/kartFr/Asset-Reuploader/internal/color"
@@ -124,5 +127,15 @@ func serve(c *roblox.Client) error {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	return http.ListenAndServe(":"+port, nil)
+	if addr := strings.TrimSpace(config.Get("bind_address")); addr != "" {
+		return http.ListenAndServe(net.JoinHostPort(addr, port), nil)
+	}
+
+	// Loopback only by default: Fedora Workstation's firewall leaves ports
+	// 1025-65535 open to the LAN, and this server acts with your cookies.
+	// Wine may resolve localhost to ::1 or 127.0.0.1, so listen on both.
+	if ln, err := net.Listen("tcp", net.JoinHostPort("::1", port)); err == nil {
+		go http.Serve(ln, nil)
+	}
+	return http.ListenAndServe(net.JoinHostPort("127.0.0.1", port), nil)
 }

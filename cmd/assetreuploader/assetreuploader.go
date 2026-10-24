@@ -1,9 +1,12 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/kartFr/Asset-Reuploader/internal/app/config"
@@ -20,6 +23,8 @@ var (
 
 func main() {
 	console.ClearScreen()
+
+	ensureUserID()
 
 	fmt.Println("Authenticating cookie...")
 
@@ -104,6 +109,10 @@ func getCookie(c *roblox.Client) {
 	for {
 		i, err := console.LongInput("ROBLOSECURITY: ")
 		console.ClearScreen()
+		if errors.Is(err, io.EOF) {
+			// no terminal attached (e.g. started from a file manager); retrying would spin forever
+			log.Fatal("No cookie in ", cookieFile, " and no terminal to ask for one. Run ./start.sh from a terminal.")
+		}
 		if err != nil {
 			color.Error.Println(err)
 			continue
@@ -119,6 +128,42 @@ func getCookie(c *roblox.Client) {
 
 		break
 	}
+}
+
+// ensureUserID asks for the user's own revival user ID when config.ini has none,
+// since revivals like Octane fall back to it when cookie authentication fails.
+func ensureUserID() {
+	domain := strings.TrimSpace(config.Get("domain"))
+	if domain == "" || strings.Contains(domain, "roblox.com") {
+		return
+	}
+	if strings.TrimSpace(config.Get("user_id")) != "" {
+		return
+	}
+
+	fmt.Printf("Enter your %s user ID (the number in your profile URL, e.g. https://%s/users/12345/profile).\n", domain, domain)
+	for {
+		id, err := console.Input("User ID: ")
+		if errors.Is(err, io.EOF) {
+			log.Fatal("user_id is empty in config.ini and there is no terminal to ask for it. Set it in config.ini or run ./start.sh from a terminal.")
+		}
+		if err != nil {
+			color.Error.Println(err)
+			continue
+		}
+
+		if _, err := strconv.ParseUint(id, 10, 64); err != nil {
+			color.Error.Println("User ID must be a number.")
+			continue
+		}
+
+		config.Set("user_id", id)
+		if err := config.Save(); err != nil {
+			color.Error.Println("Failed to save config: ", err)
+		}
+		break
+	}
+	console.ClearScreen()
 }
 
 func ensureAPIKey() {

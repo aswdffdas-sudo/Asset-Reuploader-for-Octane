@@ -1,6 +1,7 @@
 package console
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"runtime"
@@ -15,5 +16,8 @@ func ClearScreen() {
 		cmd = exec.Command("clear")
 	}
 	cmd.Stdout = os.Stdout
-	cmd.Run()
+	if err := cmd.Run(); err != nil && runtime.GOOS != "windows" {
+		// minimal installs may lack ncurses' clear; fall back to ANSI escapes
+		fmt.Print("\x1b[H\x1b[2J")
+	}
 }

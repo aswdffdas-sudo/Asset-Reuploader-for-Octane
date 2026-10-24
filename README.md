@@ -31,12 +31,38 @@ Based on the original [Asset-Reuploader](https://github.com/kartFr/Asset-Reuploa
 
 ---
 
+## 🐧 Linux (Fedora) Edition
+
+This is the Linux build of the reuploader. The backend runs natively on Fedora;
+Octane Studio 2021 runs under Wine (plain Wine, Bottles, or Lutris), and the
+plugin inside Studio talks to the backend over `localhost`, which Wine shares
+with Linux.
+
+Differences from the Windows build:
+- `setup.sh`, `start.sh`, `install-plugin.sh` and `build.sh` replace
+  `Octane Asset Reuploader Setup.exe` and `assetreuploader.exe`.
+- The backend finds `config.ini` and the cookie files next to itself, so it works
+  when started from a file manager as well as a terminal.
+- Cookie and API key files are written with `600` permissions (only you can read them).
+- The backend listens on loopback (`127.0.0.1` / `::1`) only. Fedora Workstation's
+  firewall leaves high ports open to your network, and this server acts with your
+  cookies. Set `bind_address=0.0.0.0` in `config.ini` only if you really need LAN access.
+
+---
+
 ## 🚀 Setup & Usage
 
-> **Native Setup & Launcher App (`Octane Asset Reuploader Setup.exe`)**
-> Double-click **`Octane Asset Reuploader Setup.exe`** to install the `AssetReuploader2021.rbxm` Studio plugin with 1 click, configure `cookie.txt`, `roblox_cookie.txt`, and `config.ini` directly in the UI, and launch `assetreuploader.exe`.
+### 1. Install
+```bash
+tar xzf Octane-Asset-Reuploader-*-linux-x86_64.tar.gz
+cd Octane-Asset-Reuploader-linux
+./setup.sh                 # or: ./setup.sh /path/to/your/wine-prefix
+```
+`setup.sh` builds the backend if needed (offering `sudo dnf install golang`),
+creates empty `cookie.txt` / `roblox_cookie.txt` with private permissions, asks
+for your Octane user ID, and copies the plugin into your Wine prefix.
 
-### 1. Configuration
+### 2. Configuration
 1. Open `cookie.txt` and paste your **Octane session cookie** (from `octane.wtf`).
 2. Open `roblox_cookie.txt` and paste your **official Roblox `.ROBLOSECURITY`** cookie (required for downloading private/protected sounds and animations).
 3. Open `config.ini` and verify the settings:
@@ -47,24 +73,30 @@ Based on the original [Asset-Reuploader](https://github.com/kartFr/Asset-Reuploa
    cookie_file=cookie.txt
    roblox_cookie_file=roblox_cookie.txt
    ```
-   *(Replace `YOUR_OCTANE_USER_ID` with your numeric user ID from your Octane profile URL, e.g. `https://octane.wtf/users/24811/profile`)*
+   *(`user_id` ships empty. Use your own numeric user ID from your Octane profile URL, e.g. `https://octane.wtf/users/12345/profile`. `setup.sh` and the first `./start.sh` ask for it if it's blank.)*
 
-### 2. Install the Studio Plugin
-- Copy `AssetReuploader2021.rbxmx` into your Roblox Studio plugins directory:
-  ```
-  %localappdata%\Roblox\Plugins\AssetReuploader2021.rbxmx
-  ```
+### 3. Install the Studio Plugin
+`setup.sh` does this for you. To do it again or for another prefix:
+```bash
+./install-plugin.sh                                      # uses $WINEPREFIX or ~/.wine
+./install-plugin.sh ~/.local/share/bottles/bottles/Octane # Bottles
+./install-plugin.sh ~/Games/octane                        # Lutris
+```
+It copies `AssetReuploader2021.rbxmx` to
+`<prefix>/drive_c/users/<you>/AppData/Local/Roblox/Plugins/`.
 
-### 3. Run the Reuploader Backend
-- Double-click `assetreuploader.exe`.
-- Ensure it displays:
-  ```text
-  Authenticating cookie...
-  Official Roblox download cookie loaded!
-  localhost started on port 38073. Waiting to start reuploading.
-  ```
+### 4. Run the Reuploader Backend
+```bash
+./start.sh
+```
+Ensure it displays:
+```text
+Authenticating cookie...
+Official Roblox download cookie loaded!
+localhost started on port 38073. Waiting to start reuploading.
+```
 
-### 4. Reupload Assets in Studio
+### 5. Reupload Assets in Studio
 1. Open your place in Octane Studio.
 2. In the **Plugins** ribbon bar, click **Asset Reuploader**.
 3. Select your target tab:
@@ -79,12 +111,12 @@ Based on the original [Asset-Reuploader](https://github.com/kartFr/Asset-Reuploa
 ## 🛠️ Building from Source
 
 ### Requirements
-- [Go](https://go.dev/) 1.21+
-- [Rojo](https://rojo.space/) 7.x
+- [Go](https://go.dev/) 1.23+ (`sudo dnf install golang`)
+- [Rojo](https://rojo.space/) 7.x (only to rebuild the plugin)
 
 ### Build the Backend
 ```bash
-go build -o assetreuploader.exe ./cmd/assetreuploader
+./build.sh
 ```
 
 ### Build the Studio Plugin
